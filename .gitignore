@@ -3,3 +3,6 @@ data
 best_model.pth
 __pycache__
 .ipynb_checkpoints
+test.py
+Hyper-parameter_Optimization-Shifat.ipynb
+Hyper-parameter_Optimization-HVASS.ipynb
