@@ -9,8 +9,6 @@ import torch.nn.init as init
 import torchvision
 import torchvision.transforms as transforms
 
-from weight_init import weight_init
-
 torch.set_printoptions(linewidth=120)
 torch.set_grad_enabled(True)
 
@@ -38,7 +36,10 @@ def eval_score(jacob, labels=None):
 def score(network, train_loader, num_run):
     scores = []
     for _ in range(num_run):
-        network.apply(weight_init)
+
+        for layer in network.children():
+           if hasattr(layer, 'reset_parameters'):
+               layer.reset_parameters()
 
         batch = next(iter(train_loader))
         images, labels = batch
