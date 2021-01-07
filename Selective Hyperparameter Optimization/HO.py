@@ -1,7 +1,7 @@
+%matplotlib inline
 import matplotlib.pyplot as plt
 import numpy as np
 import math
-# %matplotlib inline
 
 import torch
 import torch.nn as nn
@@ -11,8 +11,12 @@ import torch.optim as optim
 import torchvision
 import torchvision.transforms as transforms
 
+from nas_wot import score
+from MNISTConvNet import MNISTConvNet
+
 torch.set_printoptions(linewidth=120)
 torch.set_grad_enabled(True)
+
 
 import skopt
 from skopt import gp_minimize, forest_minimize
@@ -22,29 +26,28 @@ from skopt.plots import plot_objective, plot_evaluations
 from skopt.plots import plot_histogram, plot_objective_2D
 from skopt.utils import use_named_args
 
-from MNISTConvNet import MNISTConvNet
-from nas_wot import score
 
 dim_learning_rate = Real(low=1e-6, high=1e-2, prior='log-uniform',
                         name='learning_rate')
 
-dim_num_conv_layers = Integer(low=1, high=3, name='name_conv_layers')
+dim_num_conv_layers = Integer(low=1, high=3, name='num_conv_layers')
 
 dim_num_fc_units = Integer(low=5, high=512, name='num_fc_units')
 
-dim_kernel_size = Integer(low=3, high=5, name='kernel_size')
+dim_dropout_rate = Real(low=1e-5, high=1e-2, prior='log-uniform',
+                        name='dropout_rate')
 
 dimensions = [dim_learning_rate,
               dim_num_conv_layers,
               dim_num_fc_units,
-              dim_kernel_size]
+              dim_dropout_rate]
 
-default_parameters = [1e-5, 1, 16, 3]
+default_parameters = [1e-5, 1, 16, 1e-4]
 
 
 train_set = torchvision.datasets.MNIST(
                         root='./data/MNIST',
-                        train=True,
+                        train=True,           #Training Set of 60,000 images
                         download=True,
                         transform=transforms.Compose([
                             transforms.ToTensor(),
@@ -54,7 +57,7 @@ train_set = torchvision.datasets.MNIST(
 
 test_set = torchvision.datasets.MNIST(
                         root='./data/MNIST',
-                        train=False,
+                        train=False,          #Test Set of 10,000 images
                         download=True,
                         transform=transforms.Compose([
                             transforms.ToTensor(),
@@ -63,11 +66,11 @@ test_set = torchvision.datasets.MNIST(
 )
 
 train_loader = torch.utils.data.DataLoader(
-    train_set, batch_size=10
+    train_set, batch_size=100
 )
 
 test_loader = torch.utils.data.DataLoader(
-    test_set, batch_size=10
+    test_set, batch_size=100
 )
 
 
@@ -76,6 +79,7 @@ def get_num_correct(preds, labels):
 
 
 def train(model, lr, num_epoch, train_loader, test_loader):
+    
     optimizer = optim.Adam(model.parameters(), lr=lr)
 
     for epoch in range(num_epoch):
@@ -112,17 +116,18 @@ def train(model, lr, num_epoch, train_loader, test_loader):
         test_correct += get_num_correct(preds, labels)
 
     print('Test Accuracy:', test_correct/len(test_set))
-
+    
     return test_correct/len(test_set)
 
+
 best_accuracy = 0.0
-best_model_path = './best_model.pt'
+best_model_path = './best_model.pth'
 
 @use_named_args(dimensions=dimensions)
 def fitness(learning_rate, num_conv_layers,
             num_fc_units, dropout_rate):
 
-    print('learning rate: {0:.1e}'.format(learning_rate))
+    print('\n\nlearning rate: {0:.1e}'.format(learning_rate))
     print('num_conv_layers:', num_conv_layers)
     print('num_fc_units:', num_fc_units)
     print('dropout_rate:', dropout_rate)
@@ -131,24 +136,25 @@ def fitness(learning_rate, num_conv_layers,
                          num_fc_units=num_fc_units,
                          dropout_rate=dropout_rate)
 
-    
-    
-    accuracy = train(model, learning_rate, 5, train_loader, test_loader)
+    accuracy = train(model, learning_rate, 1, train_loader, test_loader)
 
     print('Accuracy:', accuracy)
 
     global best_accuracy
 
     if accuracy > best_accuracy:
-        torch.save(model.state_dict(), best_model_path)
+        torch.save(model, best_model_path)
         best_accuracy = accuracy
 
     del model
 
     return -accuracy
 
+
 search_result = gp_minimize(func=fitness,
                             dimensions=dimensions,
                             acq_func='EI',
                             n_calls=12,
                             x0=default_parameters)
+
+
