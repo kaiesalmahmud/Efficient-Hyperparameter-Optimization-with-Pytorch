@@ -14,7 +14,7 @@ import torchvision.transforms as transforms
 from nas_wot import score
 from MNISTConvNet import MNISTConvNet
 
-torch.set_printoptions(linewidth=120)
+torch.set_printoptions(linewidth=120) 
 torch.set_grad_enabled(True)
 
 
