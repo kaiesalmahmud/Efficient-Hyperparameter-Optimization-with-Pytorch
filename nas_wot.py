@@ -47,6 +47,10 @@ def score(network, train_loader, num_run):
         jacobs, labels = get_batch_jacobian(network, images, labels)
         jacobs = jacobs.reshape(jacobs.size(0), -1).cpu().numpy()
 
-        s = eval_score(jacobs, labels)
+        try:
+            s = eval_score(jacobs, labels)
+        except Exception as e:
+            print(e)
+            continue
         scores.append(s)
     return sum(scores)/len(scores)
