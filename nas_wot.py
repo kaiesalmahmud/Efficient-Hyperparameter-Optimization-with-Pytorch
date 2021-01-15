@@ -50,7 +50,7 @@ def score(network, train_loader, num_run):
         try:
             s = eval_score(jacobs, labels)
         except Exception as e:
-            print(e)
+            print('\n', e, '\n')
             continue
         scores.append(s)
     return sum(scores)/len(scores)
